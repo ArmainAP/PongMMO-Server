@@ -186,8 +186,8 @@ io.sockets.on('connection', function(socket) {
     if(!Boards[data.Index].Requested) {
       Boards[data.Index].Requested = true;
       
-      socket.emit('addBall', {Index: data.Index, X: data.X, Y: data.Y});
-      socket.broadcast.emit('addBall', {Index: data.Index, X: data.X, Y: data.Y});
+      socket.emit('addBall', {Index: data.Index, X: data.X, Y: data.Y, Authorized: true});
+      socket.broadcast.emit('addBall', {Index: data.Index, X: data.X, Y: data.Y, Authorized: false});
     }
   });
   
