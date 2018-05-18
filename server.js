@@ -159,10 +159,12 @@ var RemoveBoard = function() {
   PlayerObject.AddBoard = true;
 };
 
+var Balls = [];
+
 io.sockets.on('connection', function(socket) {
   if (PlayerObject.AddBoard) {
     AddBoard();
-    socket.broadcast.emit('boardAdd', { X: BoardObject.X, Y: BoardObject.Y }); //Add a new board for existing clients
+    socket.broadcast.emit('boardAdd', {Current: { Requested: false, Corner: BoardObject.Corner, Direction: BoardObject.Direction, Max: BoardObject.Max, X: BoardObject.X, Y: BoardObject.Y }, Previous: Boards[Boards.length - 2]}); //Add a new board for existing clients
   }
   
   socket.emit('boardData', Boards); //Sends all boards to the new player
@@ -173,6 +175,8 @@ io.sockets.on('connection', function(socket) {
   
   socket.broadcast.emit('playerAdd', { ID: PlayerObject.ID, Yaw: PlayerObject.Yaw, X: PlayerObject.X + BoardObject.X * 1000, Y: PlayerObject.Y + BoardObject.Y * 1000, Origin: {X: PlayerObject.X + BoardObject.X * 1000, Y: PlayerObject.Y + BoardObject.Y * 1000} });
   socket.emit('playerData', {ID: PlayerObject.ID, Players: Players});
+  
+  socket.emit('ballData', Balls);
   
   socket.on('positionUpdate', function (data) {
     Players[data.ID].X = data.X;
@@ -186,8 +190,10 @@ io.sockets.on('connection', function(socket) {
     if(!Boards[data.Index].Requested) {
       Boards[data.Index].Requested = true;
       
-      socket.emit('addBall', {Index: data.Index, X: data.X, Y: data.Y, Authorized: true});
-      socket.broadcast.emit('addBall', {Index: data.Index, X: data.X, Y: data.Y, Authorized: false});
+      socket.emit('addBall', {Index: data.Index, X: data.X, Y: data.Y});
+      socket.broadcast.emit('addBall', {Index: data.Index, X: data.X, Y: data.Y});
+      
+      Balls.push({X: Boards[data.Index].X * 1000, Y: Boards[data.Index].Y * 1000, DirectionX: data.X, DirectionY: data.Y, Velocity: 650});
     }
   });
   
@@ -196,7 +202,17 @@ io.sockets.on('connection', function(socket) {
   });
   
   socket.on('updateBall', function(data) {
-    socket.broadcast.emit('setBall', data);
+    if(Balls[data.Index]) {
+      Balls[data.Index].X = data.X;
+      Balls[data.Index].Y = data.Y;
+      Balls[data.Index].DirectionX = data.DirectionX;
+      Balls[data.Index].DirectionY = data.DirectionY;
+      Balls[data.Index].Velocity = data.Velocity
+    }
+  });
+  
+  socket.on('removeBall', function(index) {
+    Balls.splice(index, 1);
   });
   
   socket.on('disconnect', function () {
