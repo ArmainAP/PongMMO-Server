@@ -42,7 +42,7 @@ var AddPlayer = function(id) {
     }
   }
   
-  Players[id] = { ID: PlayerObject.ID, Yaw: PlayerObject.Yaw, X: PlayerObject.X + BoardObject.X * 1000, Y: PlayerObject.Y + BoardObject.Y * 1000, Origin: {X: PlayerObject.X + BoardObject.X * 1000, Y: PlayerObject.Y + BoardObject.Y * 1000} };
+  Players[id] = { ID: PlayerObject.ID, Yaw: PlayerObject.Yaw, X: PlayerObject.X + BoardObject.X * 40, Y: PlayerObject.Y + BoardObject.Y * 40, Origin: {X: PlayerObject.X + BoardObject.X * 40, Y: PlayerObject.Y + BoardObject.Y * 40} };
 };
 
 var RotationTable = [ [ 1, 2, 3 ], [ 3, 1, 0 ], [ 0, 3, 2 ], [ 2, 0, 1 ] ];
@@ -50,14 +50,14 @@ var Transform = function(SwitchDirection, Count) {
   switch (RotationTable[SwitchDirection][Count]) {
     case 0: {
       PlayerObject.Yaw = 0;
-      PlayerObject.X = -500;
+      PlayerObject.X = -20;
       PlayerObject.Y = 0;
       break;
     }
       
     case 1: {
       PlayerObject.Yaw = 180;
-      PlayerObject.X = 500;
+      PlayerObject.X = 20;
       PlayerObject.Y = 0;
       break;
     }
@@ -65,14 +65,14 @@ var Transform = function(SwitchDirection, Count) {
     case 2: {
       PlayerObject.Yaw = 90;
       PlayerObject.X = 0;
-      PlayerObject.Y = -500;
+      PlayerObject.Y = -20;
       break;
     }
       
     case 3: {
       PlayerObject.Yaw = 270;
       PlayerObject.X = 0;
-      PlayerObject.Y = 500;
+      PlayerObject.Y = 20;
       break;
     }
   }
@@ -167,16 +167,14 @@ io.sockets.on('connection', function(socket) {
     socket.broadcast.emit('boardAdd', {Current: { Requested: false, Corner: BoardObject.Corner, Direction: BoardObject.Direction, Max: BoardObject.Max, X: BoardObject.X, Y: BoardObject.Y }, Previous: Boards[Boards.length - 2]}); //Add a new board for existing clients
   }
   
-  socket.emit('boardData', Boards); //Sends all boards to the new player
+  socket.emit('boardData', {Boards: Boards, Balls: Balls}); //Sends all boards to the new player
   
   console.log(socket.id, " connected!");
   
   AddPlayer(socket.id);
   
-  socket.broadcast.emit('playerAdd', { ID: PlayerObject.ID, Yaw: PlayerObject.Yaw, X: PlayerObject.X + BoardObject.X * 1000, Y: PlayerObject.Y + BoardObject.Y * 1000, Origin: {X: PlayerObject.X + BoardObject.X * 1000, Y: PlayerObject.Y + BoardObject.Y * 1000} });
+  socket.broadcast.emit('playerAdd', { ID: PlayerObject.ID, Yaw: PlayerObject.Yaw, X: PlayerObject.X + BoardObject.X * 40, Y: PlayerObject.Y + BoardObject.Y * 40, Origin: {X: PlayerObject.X + BoardObject.X * 40, Y: PlayerObject.Y + BoardObject.Y * 40} });
   socket.emit('playerData', {ID: PlayerObject.ID, Players: Players});
-  
-  socket.emit('ballData', Balls);
   
   socket.on('positionUpdate', function (data) {
     Players[data.ID].X = data.X;
@@ -186,14 +184,14 @@ io.sockets.on('connection', function(socket) {
     socket.broadcast.emit('playerMoved', data);
   });
   
-  socket.on('requestBall', function(data) {
+  socket.on('requestBall', function(data) {    
     if(!Boards[data.Index].Requested) {
       Boards[data.Index].Requested = true;
       
-      socket.emit('addBall', {Index: data.Index, X: data.X, Y: data.Y});
-      socket.broadcast.emit('addBall', {Index: data.Index, X: data.X, Y: data.Y});
+      socket.emit('addBall', {Index: data.Index, Direction: data.Direction});
+      socket.broadcast.emit('addBall', {Index: data.Index, Direction: data.Direction});
       
-      Balls.push({X: Boards[data.Index].X * 1000, Y: Boards[data.Index].Y * 1000, DirectionX: data.X, DirectionY: data.Y, Velocity: 650});
+      Balls.push({BoardIndex: data.Index, Position: {x: null, y: null}, Direction: data.Direction, Velocity: 25});
     }
   });
   
@@ -203,10 +201,9 @@ io.sockets.on('connection', function(socket) {
   
   socket.on('updateBall', function(data) {
     if(Balls[data.Index]) {
-      Balls[data.Index].X = data.X;
-      Balls[data.Index].Y = data.Y;
-      Balls[data.Index].DirectionX = data.DirectionX;
-      Balls[data.Index].DirectionY = data.DirectionY;
+      Balls[data.Index].BoardIndex = data.BoardIndex;
+      Balls[data.Index].Position = data.Position;
+      Balls[data.Index].Direction = data.Direction;
       Balls[data.Index].Velocity = data.Velocity
     }
   });
