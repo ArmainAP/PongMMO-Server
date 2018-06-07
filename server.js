@@ -109,7 +109,7 @@ var AddBoard = function() {
       {
         BoardObject.Direction = 2;
         BoardObject.Max *= -1;
-        BoardObject.Corener = true;
+        BoardObject.Corner = true;
       }
       else
         BoardObject.Corner = false;
